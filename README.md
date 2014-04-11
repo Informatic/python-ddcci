@@ -11,7 +11,7 @@ self-explanatory, especially in conjunction with example included in libraries
 Bus ID can be provider as the first (and only) commandline argument, bus 8 is
 chosen otherwise. (Most probably because my primary display is accessible on
 that one, but not really sure ;)) Icons used in this example are courtesy of
-(Glyphish)[http://www.glyphish.com/].
+[Glyphish](http://www.glyphish.com/).
 
 You may also find `ddccontrol-db` and `ddccontrol -p` helpful when looking for
 control addresses.

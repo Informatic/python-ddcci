@@ -7,8 +7,17 @@ PyQt4 DDC/CI GUI, python-ddcci example
 
 import sys
 import ddcci
+import os
 from PyQt4 import QtGui, QtCore
 from PyKDE4.kdeui import KStatusNotifierItem
+
+script_path = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
+assets_path = os.path.join(script_path, 'assets')
+
+
+def asset(name):
+    return os.path.join(assets_path, name)
+
 
 class QDDCCIGui(QtGui.QWidget):
     controls = [{
@@ -21,21 +30,21 @@ class QDDCCIGui(QtGui.QWidget):
         'id': 0x12,
         }]
 
-    scrollControl = controls[1]
+    scroll_control = controls[1]
 
     def __init__(self, busid):
         super(QDDCCIGui, self).__init__()
 
         self.device = ddcci.DDCCIDevice(busid)
-        self.initUI()
+        self.init_ui()
 
-    def initUI(self):
+    def init_ui(self):
         grid = QtGui.QGridLayout()
         grid.setSpacing(2)
 
         for i, control in enumerate(self.controls):
             icon = QtGui.QLabel(self)
-            icon.setPixmap(QtGui.QPixmap('assets/%s.png' % control['tag']))
+            icon.setPixmap(QtGui.QPixmap(asset('%s.png' % control['tag'])))
             icon.setToolTip(control['name'])
             grid.addWidget(icon, i+1, 0)
 
@@ -54,13 +63,13 @@ class QDDCCIGui(QtGui.QWidget):
             sld.setMinimum(0)
             sld.setMaximum(max_value)
             sld.setValue(value)
-            self.updateLabel(sld)
+            self.update_label(sld)
 
             sld.setMinimumWidth(150)
             sld.setFocusPolicy(QtCore.Qt.NoFocus)
-            sld.valueChanged[int].connect(self.changeValue)
+            sld.valueChanged[int].connect(self.change_value)
 
-            control['slider'] = sld # FIXME circular reference
+            control['slider'] = sld  # FIXME circular reference
 
             grid.addWidget(sld, i+1, 2)
 
@@ -68,22 +77,27 @@ class QDDCCIGui(QtGui.QWidget):
         self.setGeometry(300, 300, 280, 70)
         self.setWindowTitle('Qt DDC/CI Gui')
         self.show()
-        
-        if self.scrollControl:
-            self.trayIcon = KStatusNotifierItem("qddccigui", self)
-            self.trayIcon.setIconByPixmap(QtGui.QIcon(QtGui.QPixmap('assets/%s.png' % self.scrollControl['tag'])))
-            self.trayIcon.scrollRequested[int,QtCore.Qt.Orientation].connect(self.scrollRequested)
 
-    def changeValue(self, value, update=True):
-        self.updateLabel(self.sender())
-        if update: self.device.write(self.sender().control['id'], value)
+        if self.scroll_control:
+            self.tray_icon = KStatusNotifierItem("qddccigui", self)
+            self.tray_icon.setIconByPixmap(QtGui.QIcon(QtGui.QPixmap(
+                asset('%s.png' % self.scroll_control['tag']))))
+            self.tray_icon.scrollRequested[int, QtCore.Qt.Orientation].\
+                connect(self.scroll_requested)
 
-    def scrollRequested(self, delta, orientation):
-        new_value = self.scrollControl['slider'].value() + delta/24
-        self.scrollControl['slider'].setValue(new_value)
+    def change_value(self, value, update=True):
+        self.update_label(self.sender())
 
-    def updateLabel(self, sld):
+        if update:
+            self.device.write(self.sender().control['id'], value)
+
+    def scroll_requested(self, delta, orientation):
+        new_value = self.scroll_control['slider'].value() + delta/24
+        self.scroll_control['slider'].setValue(new_value)
+
+    def update_label(self, sld):
         sld.label.setText('%d%%' % sld.value())
+
 
 def main():
     app = QtGui.QApplication(sys.argv)

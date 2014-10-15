@@ -2,16 +2,17 @@ import smbus
 import time
 from functools import wraps
 
-MAGIC_1   = 0x51
-MAGIC_2   = 0x80
+MAGIC_1 = 0x51
+MAGIC_2 = 0x80
 
-DDCCI_COMMAND_READ  = 0x01
-DDCCI_REPLY_READ    = 0x02
+DDCCI_COMMAND_READ = 0x01
+DDCCI_REPLY_READ = 0x02
 DDCCI_COMMAND_WRITE = 0x03
 
 DEFAULT_DDCCI_ADDR = 0x37
 
 READ_DELAY = WRITE_DELAY = 0.06
+
 
 def throttle(delay):
     """usage:
@@ -24,7 +25,8 @@ def throttle(delay):
     def throttle_deco(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
-            if hasattr(func, 'last_execution') and time.time() - func.last_execution < delay:
+            if hasattr(func, 'last_execution') and \
+                    time.time() - func.last_execution < delay:
                 time.sleep(delay - (time.time() - func.last_execution))
 
             r = func(*args, **kwargs)
@@ -33,17 +35,18 @@ def throttle(delay):
 
         return wrapped
 
-    if callable(delay): # @throttle invocation
+    if callable(delay):  # @throttle invocation
         func, delay = delay, WRITE_DELAY
         return throttle_deco(func)
-    else: # @throttle(...) invocation
+    else:  # @throttle(...) invocation
         return throttle_deco
 
-class ReadException(Exception): pass
+
+class ReadException(Exception):
+    pass
+
 
 class DDCCIDevice(object):
-    bus = None
-
     def __init__(self, bus, address=DEFAULT_DDCCI_ADDR):
         if isinstance(bus, smbus.SMBus):
             self.bus = bus
@@ -53,14 +56,18 @@ class DDCCIDevice(object):
         self.address = address
 
     def write(self, ctrl, value):
-        payload = self.prepare_payload(self.address,
-                [DDCCI_COMMAND_WRITE, ctrl, (value>>8) & 255, value & 255])
+        payload = self.prepare_payload(
+            self.address,
+            [DDCCI_COMMAND_WRITE, ctrl, (value >> 8) & 255, value & 255]
+        )
 
         self.write_payload(payload)
 
     def read(self, ctrl, extended=False):
-        payload = self.prepare_payload(self.address,
-                [DDCCI_COMMAND_READ, ctrl])
+        payload = self.prepare_payload(
+            self.address,
+            [DDCCI_COMMAND_READ, ctrl]
+        )
 
         self.write_payload(payload)
 
@@ -74,7 +81,9 @@ class DDCCIDevice(object):
         checksum = self.bus.read_byte(self.address)
 
         xor = (self.address << 1 | 1) ^ MAGIC_1 ^ (MAGIC_2 | len(data))
-        for n in data: xor ^= n
+
+        for n in data:
+            xor ^= n
 
         if xor != checksum:
             raise ReadException("Invalid checksum")
@@ -109,13 +118,14 @@ class DDCCIDevice(object):
         payload = [MAGIC_1, MAGIC_2 | len(data)]
 
         if data[0] == DDCCI_COMMAND_READ:
-            xor = addr << 1 | 1;
+            xor = addr << 1 | 1
         else:
             xor = addr << 1
 
         payload.extend(data)
 
-        for x in payload: xor ^= x
+        for x in payload:
+            xor ^= x
 
         payload.append(xor)
 
@@ -125,19 +135,20 @@ if __name__ == '__main__':
     # You can obtain your bus id using `i2cdetect -l` or `ddccontrol -p`
     d = DDCCIDevice(8)
 
-    print 'Demo 1 ...'
+    print('Demo 1 ...')
     d.write(0x10, 42)
 
     time.sleep(1)
 
-    print 'Demo 2 ...'
+    print('Demo 2 ...')
     d.brightness = 12
     d.contrast = 34
 
     time.sleep(1)
 
-    print 'Demo 3 ...'
+    print('Demo 3 ...')
     d.write(0x12, 69)
 
-    print 'Brightness: %d, Contrast: %d' % (d.brightness, d.contrast)
-    print 'Max brightness: %d, Max contrast: %d' % (d.read(0x10, True)[1], d.read(0x12, True)[1])
+    print('Brightness: %d, Contrast: %d' % (d.brightness, d.contrast))
+    print('Max brightness: %d, Max contrast: %d' % (
+        d.read(0x10, True)[1], d.read(0x12, True)[1]))

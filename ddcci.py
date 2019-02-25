@@ -2,8 +2,8 @@ import smbus
 import time
 from functools import wraps
 
-MAGIC_1 = 0x51
-MAGIC_2 = 0x80
+HOST_SLAVE_ADDRESS = 0x51
+PROTOCOL_FLAG = 0x80
 
 DDCCI_COMMAND_READ = 0x01
 DDCCI_REPLY_READ = 0x02
@@ -76,11 +76,11 @@ class DDCCIDevice(object):
         if self.bus.read_byte(self.address) != self.address << 1:
             raise ReadException("ACK invalid")
 
-        data_length = self.bus.read_byte(self.address) & ~MAGIC_2
+        data_length = self.bus.read_byte(self.address) & ~PROTOCOL_FLAG
         data = [self.bus.read_byte(self.address) for n in xrange(data_length)]
         checksum = self.bus.read_byte(self.address)
 
-        xor = (self.address << 1 | 1) ^ MAGIC_1 ^ (MAGIC_2 | len(data))
+        xor = (self.address << 1 | 1) ^ HOST_SLAVE_ADDRESS ^ (PROTOCOL_FLAG | len(data))
 
         for n in data:
             xor ^= n
@@ -115,7 +115,7 @@ class DDCCIDevice(object):
         self.bus.write_i2c_block_data(self.address, payload[0], payload[1:])
 
     def prepare_payload(self, addr, data):
-        payload = [MAGIC_1, MAGIC_2 | len(data)]
+        payload = [HOST_SLAVE_ADDRESS, PROTOCOL_FLAG | len(data)]
 
         if data[0] == DDCCI_COMMAND_READ:
             xor = addr << 1 | 1
